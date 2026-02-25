@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.0 (2025-02-25)
+
+### Added
+
+- `atomize/2` function to convert string-keyed JSON data back to atom keys
+  - Uses the schema's `"properties"` as the source of allowed keys
+  - Converts enum string values to atoms (e.g., `"active"` → `:active`)
+  - Recursively atomizes nested objects and arrays of objects
+  - Unknown keys are left as strings (safe for untrusted input)
+
 ## v1.0.0 (2025-02-25)
 
 Initial release.
