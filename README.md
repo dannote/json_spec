@@ -1,5 +1,8 @@
 # JSONSpec
 
+[![Hex.pm](https://img.shields.io/hexpm/v/json_spec.svg)](https://hex.pm/packages/json_spec)
+[![Docs](https://img.shields.io/badge/docs-hexdocs-blue.svg)](https://hexdocs.pm/json_spec)
+
 Elixir typespec syntax → JSON Schema, at compile time.
 
 Write familiar Elixir types, get a JSON Schema map with zero runtime cost.
@@ -27,7 +30,7 @@ schema(%{
 
 ```elixir
 def deps do
-  [{:json_spec, "~> 0.1.0"}]
+  [{:json_spec, "~> 1.0"}]
 end
 ```
 

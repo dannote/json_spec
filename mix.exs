@@ -1,7 +1,7 @@
 defmodule JSONSpec.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "1.0.0"
   @source_url "https://github.com/dannote/json_spec"
 
   def project do
@@ -14,6 +14,7 @@ defmodule JSONSpec.MixProject do
       name: "JSONSpec",
       description: "Elixir typespec syntax → JSON Schema, at compile time",
       source_url: @source_url,
+      homepage_url: @source_url,
       package: package(),
       docs: docs(),
       dialyzer: [
@@ -24,7 +25,7 @@ defmodule JSONSpec.MixProject do
   end
 
   def application do
-    [extra_applications: [:logger]]
+    [extra_applications: []]
   end
 
   defp deps do
@@ -38,12 +39,20 @@ defmodule JSONSpec.MixProject do
 
   defp package do
     [
+      name: "json_spec",
       licenses: ["MIT"],
-      links: %{"GitHub" => @source_url}
+      links: %{"GitHub" => @source_url},
+      files: ~w(lib .formatter.exs mix.exs README.md LICENSE),
+      maintainers: ["Dan Kalinin"]
     ]
   end
 
   defp docs do
-    [main: "JSONSpec"]
+    [
+      main: "JSONSpec",
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      extras: ["README.md": [title: "Overview"]]
+    ]
   end
 end
