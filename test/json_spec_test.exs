@@ -322,6 +322,46 @@ defmodule JSONSpecTest do
     end
   end
 
+  describe "atomize/2" do
+    test "converts string keys to atoms" do
+      s = schema(%{required(:name) => String.t(), optional(:age) => integer()})
+      assert JSONSpec.atomize(s, %{"name" => "Alice", "age" => 30}) == %{name: "Alice", age: 30}
+    end
+
+    test "leaves unknown keys as strings" do
+      s = schema(%{name: String.t()})
+      result = JSONSpec.atomize(s, %{"name" => "Alice", "extra" => "x"})
+      assert result[:name] == "Alice"
+      assert result["extra"] == "x"
+    end
+
+    test "atomizes nested objects" do
+      s = schema(%{user: %{name: String.t(), email: String.t()}})
+      input = %{"user" => %{"name" => "Alice", "email" => "a@b.c"}}
+      assert JSONSpec.atomize(s, input) == %{user: %{name: "Alice", email: "a@b.c"}}
+    end
+
+    test "atomizes enum values" do
+      s = schema(%{required(:status) => :active | :inactive})
+      assert JSONSpec.atomize(s, %{"status" => "active"}) == %{status: :active}
+    end
+
+    test "atomizes arrays of objects" do
+      s = schema(%{items: [%{id: integer(), name: String.t()}]})
+      input = %{"items" => [%{"id" => 1, "name" => "A"}, %{"id" => 2, "name" => "B"}]}
+      assert JSONSpec.atomize(s, input) == %{items: [%{id: 1, name: "A"}, %{id: 2, name: "B"}]}
+    end
+
+    test "handles already atom-keyed maps" do
+      s = schema(%{name: String.t()})
+      assert JSONSpec.atomize(s, %{name: "Alice"}) == %{name: "Alice"}
+    end
+
+    test "returns data as-is when schema has no properties" do
+      assert JSONSpec.atomize(%{}, %{"a" => 1}) == %{"a" => 1}
+    end
+  end
+
   describe "complex schemas" do
     test "LLM tool-like schema" do
       result =

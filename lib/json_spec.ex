@@ -35,6 +35,18 @@ defmodule JSONSpec do
         doc: [location: "City name", units: "Temperature units"]
       )
 
+  ## Atomizing
+
+  JSON data uses string keys. `atomize/2` converts them back to atoms
+  using the schema as the source of truth:
+
+      my_schema = schema(%{required(:name) => String.t(), required(:status) => :active | :inactive})
+      JSONSpec.atomize(my_schema, %{"name" => "Alice", "status" => "active"})
+      #=> %{name: "Alice", status: :active}
+
+  Enum string values are converted to atoms. Nested objects and arrays of
+  objects are atomized recursively. Unknown keys are left as strings.
+
   ## Supported types
 
   | Elixir type | JSON Schema |
@@ -57,6 +69,51 @@ defmodule JSONSpec do
   | `optional(:key) => type` | omitted from `required` |
   | `type \\| nil` | omitted from `required` |
   """
+
+  @doc """
+  Converts a string-keyed map to an atom-keyed map using the schema's
+  `"properties"` as the source of allowed keys.
+
+  Unknown keys are left as strings. Enum values are converted to atoms.
+  Nested objects and arrays of objects are atomized recursively.
+
+  ## Examples
+
+      import JSONSpec
+
+      my_schema = schema(%{required(:name) => String.t(), optional(:age) => integer()})
+      JSONSpec.atomize(my_schema, %{"name" => "Alice", "age" => 30})
+      #=> %{name: "Alice", age: 30}
+  """
+  @spec atomize(map(), map()) :: map()
+  def atomize(%{"properties" => properties}, data) when is_map(data) do
+    Map.new(data, fn {k, v} ->
+      str_key = to_string(k)
+
+      case Map.fetch(properties, str_key) do
+        {:ok, prop_schema} ->
+          {String.to_atom(str_key), atomize_value(prop_schema, v)}
+
+        :error ->
+          {k, v}
+      end
+    end)
+  end
+
+  def atomize(_schema, data), do: data
+
+  defp atomize_value(%{"type" => "object", "properties" => _} = schema, value)
+       when is_map(value),
+       do: atomize(schema, value)
+
+  defp atomize_value(%{"type" => "array", "items" => items}, values)
+       when is_list(values),
+       do: Enum.map(values, &atomize_value(items, &1))
+
+  defp atomize_value(%{"enum" => _}, value) when is_binary(value),
+    do: String.to_atom(value)
+
+  defp atomize_value(_schema, value), do: value
 
   @doc """
   Converts an Elixir typespec AST to a JSON Schema map at compile time.

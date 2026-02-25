@@ -30,7 +30,7 @@ schema(%{
 
 ```elixir
 def deps do
-  [{:json_spec, "~> 1.0"}]
+  [{:json_spec, "~> 1.1"}]
 end
 ```
 
@@ -100,6 +100,25 @@ schema(%{
 })
 ```
 
+### Atomizing
+
+JSON data uses string keys. `atomize/2` converts them back to atoms using
+the schema as the source of truth:
+
+```elixir
+my_schema = schema(%{
+  required(:name) => String.t(),
+  required(:status) => :active | :inactive,
+  optional(:age) => integer()
+})
+
+JSONSpec.atomize(my_schema, %{"name" => "Alice", "status" => "active", "age" => 30})
+# => %{name: "Alice", status: :active, age: 30}
+```
+
+Enum string values are converted to atoms. Nested objects and arrays of
+objects are atomized recursively.
+
 ## Type mapping
 
 | Elixir | JSON Schema |
@@ -121,24 +140,30 @@ schema(%{
 | `%{k: type}` | nested object |
 | `type \| nil` | optional (not in `required`) |
 
-## Use with LLM tools
+## Use with ReqLLM
 
-JSONSpec pairs well with [ReqLLM](https://github.com/agentjido/req_llm):
+JSONSpec works with [ReqLLM](https://hexdocs.pm/req_llm) tool calling.
+Define the schema, then atomize the args the LLM sends back:
 
 ```elixir
 import JSONSpec
 
-Tool.new!(
+@weather_schema schema(
+  %{
+    required(:location) => String.t(),
+    optional(:units) => :celsius | :fahrenheit
+  },
+  doc: [location: "City name", units: "Temperature units"]
+)
+
+ReqLLM.tool(
   name: "get_weather",
   description: "Get current weather for a location",
-  parameter_schema: schema(
-    %{
-      required(:location) => String.t(),
-      optional(:units) => :celsius | :fahrenheit
-    },
-    doc: [location: "City name", units: "Temperature units"]
-  ),
-  callback: {WeatherService, :get_current_weather}
+  parameter_schema: @weather_schema,
+  callback: fn args ->
+    %{location: location, units: units} = JSONSpec.atomize(@weather_schema, args)
+    WeatherService.get(location, units || :celsius)
+  end
 )
 ```
 
