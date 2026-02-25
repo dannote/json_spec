@@ -7,7 +7,7 @@ Write familiar Elixir types, get a JSON Schema map with zero runtime cost.
 ```elixir
 import JSONSpec
 
-json_spec(%{
+schema(%{
   required(:location) => String.t(),
   optional(:units) => :celsius | :fahrenheit
 })
@@ -38,14 +38,14 @@ end
 Keyword-style keys are required by default:
 
 ```elixir
-json_spec(%{name: String.t(), age: integer()})
+schema(%{name: String.t(), age: integer()})
 # Both "name" and "age" in "required"
 ```
 
 Use `optional()` / `required()` with arrow syntax for explicit control:
 
 ```elixir
-json_spec(%{
+schema(%{
   required(:name) => String.t(),
   optional(:email) => String.t()
 })
@@ -54,14 +54,14 @@ json_spec(%{
 Or use `| nil` to mark a field as optional:
 
 ```elixir
-json_spec(%{name: String.t(), email: String.t() | nil})
+schema(%{name: String.t(), email: String.t() | nil})
 # Only "name" in "required"
 ```
 
 ### Descriptions
 
 ```elixir
-json_spec(
+schema(
   %{required(:location) => String.t(), optional(:units) => :celsius | :fahrenheit},
   doc: [location: "City name", units: "Temperature units"]
 )
@@ -72,24 +72,24 @@ json_spec(
 Unions of atoms become `"enum"`:
 
 ```elixir
-json_spec(:active | :inactive | :pending)
+schema(:active | :inactive | :pending)
 # => %{"type" => "string", "enum" => ["active", "inactive", "pending"]}
 ```
 
 ### Arrays
 
 ```elixir
-json_spec([String.t()])
+schema([String.t()])
 # => %{"type" => "array", "items" => %{"type" => "string"}}
 
-json_spec([%{id: integer(), name: String.t()}])
+schema([%{id: integer(), name: String.t()}])
 # Array of objects
 ```
 
 ### Nesting
 
 ```elixir
-json_spec(%{
+schema(%{
   user: %{
     name: String.t(),
     address: %{city: String.t(), zip: String.t()}
@@ -128,7 +128,7 @@ import JSONSpec
 Tool.new!(
   name: "get_weather",
   description: "Get current weather for a location",
-  parameter_schema: json_spec(
+  parameter_schema: schema(
     %{
       required(:location) => String.t(),
       optional(:units) => :celsius | :fahrenheit

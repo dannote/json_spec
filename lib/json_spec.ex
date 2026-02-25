@@ -8,7 +8,7 @@ defmodule JSONSpec do
 
       import JSONSpec
 
-      schema = json_spec(%{
+      my_schema = schema(%{
         name: String.t(),
         age: integer(),
         optional(:email) => String.t()
@@ -30,7 +30,7 @@ defmodule JSONSpec do
 
   Pass a `doc` option with a keyword list to add descriptions to properties:
 
-      json_spec(
+      schema(
         %{location: String.t(), optional(:units) => :celsius | :fahrenheit},
         doc: [location: "City name", units: "Temperature units"]
       )
@@ -72,18 +72,18 @@ defmodule JSONSpec do
 
       import JSONSpec
 
-      json_spec(%{name: String.t(), age: integer()})
+      schema(%{name: String.t(), age: integer()})
 
-      json_spec(
+      schema(
         %{name: String.t(), optional(:age) => integer()},
         doc: [name: "Full name", age: "Age in years"]
       )
 
-      json_spec([String.t()])
+      schema([String.t()])
 
-      json_spec(:active | :inactive | :pending)
+      schema(:active | :inactive | :pending)
   """
-  defmacro json_spec(type_ast, opts \\ []) do
+  defmacro schema(type_ast, opts \\ []) do
     docs = extract_docs(opts)
     schema = convert(type_ast, docs)
     Macro.escape(schema)

@@ -21,7 +21,7 @@ defmodule JSONSpecValidationTest do
 
   describe "primitive type schemas validate correctly" do
     test "String.t() accepts strings, rejects others" do
-      schema = json_spec(String.t())
+      schema = schema(String.t())
 
       assert valid?(schema, "hello")
       assert valid?(schema, "")
@@ -32,7 +32,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "integer() accepts integers, rejects others" do
-      schema = json_spec(integer())
+      schema = schema(integer())
 
       assert valid?(schema, 0)
       assert valid?(schema, 42)
@@ -43,7 +43,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "pos_integer() accepts positive integers only" do
-      schema = json_spec(pos_integer())
+      schema = schema(pos_integer())
 
       assert valid?(schema, 1)
       assert valid?(schema, 100)
@@ -53,7 +53,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "non_neg_integer() accepts zero and positive integers" do
-      schema = json_spec(non_neg_integer())
+      schema = schema(non_neg_integer())
 
       assert valid?(schema, 0)
       assert valid?(schema, 1)
@@ -63,7 +63,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "neg_integer() accepts negative integers only" do
-      schema = json_spec(neg_integer())
+      schema = schema(neg_integer())
 
       assert valid?(schema, -1)
       assert valid?(schema, -100)
@@ -72,7 +72,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "float()/number() accepts numbers" do
-      schema = json_spec(number())
+      schema = schema(number())
 
       assert valid?(schema, 0)
       assert valid?(schema, 42)
@@ -83,7 +83,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "boolean() accepts booleans only" do
-      schema = json_spec(boolean())
+      schema = schema(boolean())
 
       assert valid?(schema, true)
       assert valid?(schema, false)
@@ -94,7 +94,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "map() accepts any object" do
-      schema = json_spec(map())
+      schema = schema(map())
 
       assert valid?(schema, %{})
       assert valid?(schema, %{"a" => 1})
@@ -105,7 +105,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "any()/term() accepts everything" do
-      schema = json_spec(any())
+      schema = schema(any())
 
       assert valid?(schema, "string")
       assert valid?(schema, 123)
@@ -118,7 +118,7 @@ defmodule JSONSpecValidationTest do
 
   describe "array schemas validate correctly" do
     test "[String.t()] accepts arrays of strings" do
-      schema = json_spec([String.t()])
+      schema = schema([String.t()])
 
       assert valid?(schema, [])
       assert valid?(schema, ["a", "b", "c"])
@@ -128,7 +128,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "[integer()] accepts arrays of integers" do
-      schema = json_spec([integer()])
+      schema = schema([integer()])
 
       assert valid?(schema, [])
       assert valid?(schema, [1, 2, 3])
@@ -138,7 +138,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "nested arrays validate correctly" do
-      schema = json_spec([[integer()]])
+      schema = schema([[integer()]])
 
       assert valid?(schema, [])
       assert valid?(schema, [[1, 2], [3, 4]])
@@ -150,7 +150,7 @@ defmodule JSONSpecValidationTest do
 
   describe "enum schemas validate correctly" do
     test "atom union accepts only listed values" do
-      schema = json_spec(:active | :inactive | :pending)
+      schema = schema(:active | :inactive | :pending)
 
       assert valid?(schema, "active")
       assert valid?(schema, "inactive")
@@ -161,7 +161,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "two-value enum" do
-      schema = json_spec(:yes | :no)
+      schema = schema(:yes | :no)
 
       assert valid?(schema, "yes")
       assert valid?(schema, "no")
@@ -172,7 +172,7 @@ defmodule JSONSpecValidationTest do
 
   describe "object schemas validate correctly" do
     test "simple object with required fields" do
-      schema = json_spec(%{name: String.t(), age: integer()})
+      schema = schema(%{name: String.t(), age: integer()})
 
       assert valid?(schema, %{"name" => "Alice", "age" => 30})
       refute valid?(schema, %{"name" => "Alice"})
@@ -183,7 +183,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "object rejects additional properties" do
-      schema = json_spec(%{name: String.t()})
+      schema = schema(%{name: String.t()})
 
       assert valid?(schema, %{"name" => "Alice"})
       refute valid?(schema, %{"name" => "Alice", "extra" => "field"})
@@ -191,7 +191,7 @@ defmodule JSONSpecValidationTest do
 
     test "object with optional fields" do
       schema =
-        json_spec(%{
+        schema(%{
           required(:name) => String.t(),
           optional(:email) => String.t()
         })
@@ -203,7 +203,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "nullable field is optional" do
-      schema = json_spec(%{name: String.t(), age: integer() | nil})
+      schema = schema(%{name: String.t(), age: integer() | nil})
 
       assert valid?(schema, %{"name" => "Alice", "age" => 30})
       assert valid?(schema, %{"name" => "Alice"})
@@ -212,7 +212,7 @@ defmodule JSONSpecValidationTest do
 
     test "nested objects validate deeply" do
       schema =
-        json_spec(%{
+        schema(%{
           user: %{
             name: String.t(),
             address: %{city: String.t()}
@@ -241,7 +241,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "object with array field" do
-      schema = json_spec(%{tags: [String.t()]})
+      schema = schema(%{tags: [String.t()]})
 
       assert valid?(schema, %{"tags" => []})
       assert valid?(schema, %{"tags" => ["a", "b"]})
@@ -250,7 +250,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "object with enum field" do
-      schema = json_spec(%{status: :active | :inactive})
+      schema = schema(%{status: :active | :inactive})
 
       assert valid?(schema, %{"status" => "active"})
       assert valid?(schema, %{"status" => "inactive"})
@@ -259,7 +259,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "array of objects" do
-      schema = json_spec([%{id: integer(), name: String.t()}])
+      schema = schema([%{id: integer(), name: String.t()}])
 
       assert valid?(schema, [])
       assert valid?(schema, [%{"id" => 1, "name" => "Alice"}])
@@ -277,7 +277,7 @@ defmodule JSONSpecValidationTest do
   describe "complex real-world schemas" do
     test "LLM tool parameter schema" do
       schema =
-        json_spec(
+        schema(
           %{
             required(:location) => String.t(),
             optional(:units) => :celsius | :fahrenheit,
@@ -315,7 +315,7 @@ defmodule JSONSpecValidationTest do
 
     test "deeply nested structure" do
       schema =
-        json_spec(%{
+        schema(%{
           company: %{
             name: String.t(),
             employees: [
@@ -354,7 +354,7 @@ defmodule JSONSpecValidationTest do
     end
 
     test "nullable enum field" do
-      schema = json_spec(%{status: :active | :inactive | nil})
+      schema = schema(%{status: :active | :inactive | nil})
 
       assert valid?(schema, %{})
       assert valid?(schema, %{"status" => "active"})
@@ -367,7 +367,7 @@ defmodule JSONSpecValidationTest do
   describe "schema metadata" do
     test "description is present in schema" do
       schema =
-        json_spec(
+        schema(
           %{name: String.t()},
           doc: [name: "Full name"]
         )
@@ -376,13 +376,13 @@ defmodule JSONSpecValidationTest do
     end
 
     test "additionalProperties is false for objects" do
-      schema = json_spec(%{name: String.t()})
+      schema = schema(%{name: String.t()})
       assert schema["additionalProperties"] == false
     end
 
     test "required array contains correct fields" do
       schema =
-        json_spec(%{
+        schema(%{
           required(:a) => String.t(),
           required(:b) => String.t(),
           optional(:c) => String.t()

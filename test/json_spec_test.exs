@@ -5,75 +5,75 @@ defmodule JSONSpecTest do
 
   describe "primitive types" do
     test "String.t()" do
-      assert json_spec(String.t()) == %{"type" => "string"}
+      assert schema(String.t()) == %{"type" => "string"}
     end
 
     test "binary()" do
-      assert json_spec(binary()) == %{"type" => "string"}
+      assert schema(binary()) == %{"type" => "string"}
     end
 
     test "integer()" do
-      assert json_spec(integer()) == %{"type" => "integer"}
+      assert schema(integer()) == %{"type" => "integer"}
     end
 
     test "pos_integer()" do
-      assert json_spec(pos_integer()) == %{"type" => "integer", "minimum" => 1}
+      assert schema(pos_integer()) == %{"type" => "integer", "minimum" => 1}
     end
 
     test "non_neg_integer()" do
-      assert json_spec(non_neg_integer()) == %{"type" => "integer", "minimum" => 0}
+      assert schema(non_neg_integer()) == %{"type" => "integer", "minimum" => 0}
     end
 
     test "neg_integer()" do
-      assert json_spec(neg_integer()) == %{"type" => "integer", "maximum" => -1}
+      assert schema(neg_integer()) == %{"type" => "integer", "maximum" => -1}
     end
 
     test "float()" do
-      assert json_spec(float()) == %{"type" => "number"}
+      assert schema(float()) == %{"type" => "number"}
     end
 
     test "number()" do
-      assert json_spec(number()) == %{"type" => "number"}
+      assert schema(number()) == %{"type" => "number"}
     end
 
     test "boolean()" do
-      assert json_spec(boolean()) == %{"type" => "boolean"}
+      assert schema(boolean()) == %{"type" => "boolean"}
     end
 
     test "map()" do
-      assert json_spec(map()) == %{"type" => "object"}
+      assert schema(map()) == %{"type" => "object"}
     end
 
     test "atom()" do
-      assert json_spec(atom()) == %{"type" => "string"}
+      assert schema(atom()) == %{"type" => "string"}
     end
 
     test "any()" do
-      assert json_spec(any()) == %{}
+      assert schema(any()) == %{}
     end
 
     test "term()" do
-      assert json_spec(term()) == %{}
+      assert schema(term()) == %{}
     end
   end
 
   describe "arrays" do
     test "list literal [String.t()]" do
-      assert json_spec([String.t()]) == %{
+      assert schema([String.t()]) == %{
                "type" => "array",
                "items" => %{"type" => "string"}
              }
     end
 
     test "list literal [integer()]" do
-      assert json_spec([integer()]) == %{
+      assert schema([integer()]) == %{
                "type" => "array",
                "items" => %{"type" => "integer"}
              }
     end
 
     test "nested list [[integer()]]" do
-      assert json_spec([[integer()]]) == %{
+      assert schema([[integer()]]) == %{
                "type" => "array",
                "items" => %{
                  "type" => "array",
@@ -83,7 +83,7 @@ defmodule JSONSpecTest do
     end
 
     test "list of objects" do
-      assert json_spec([%{id: integer(), name: String.t()}]) == %{
+      assert schema([%{id: integer(), name: String.t()}]) == %{
                "type" => "array",
                "items" => %{
                  "type" => "object",
@@ -100,21 +100,21 @@ defmodule JSONSpecTest do
 
   describe "enums (atom unions)" do
     test "two atoms" do
-      assert json_spec(:celsius | :fahrenheit) == %{
+      assert schema(:celsius | :fahrenheit) == %{
                "type" => "string",
                "enum" => ["celsius", "fahrenheit"]
              }
     end
 
     test "three atoms" do
-      assert json_spec(:active | :inactive | :pending) == %{
+      assert schema(:active | :inactive | :pending) == %{
                "type" => "string",
                "enum" => ["active", "inactive", "pending"]
              }
     end
 
     test "four atoms" do
-      assert json_spec(:a | :b | :c | :d) == %{
+      assert schema(:a | :b | :c | :d) == %{
                "type" => "string",
                "enum" => ["a", "b", "c", "d"]
              }
@@ -123,7 +123,7 @@ defmodule JSONSpecTest do
 
   describe "objects" do
     test "simple object" do
-      result = json_spec(%{name: String.t(), age: integer()})
+      result = schema(%{name: String.t(), age: integer()})
 
       assert result == %{
                "type" => "object",
@@ -138,7 +138,7 @@ defmodule JSONSpecTest do
 
     test "object with optional fields via optional()" do
       result =
-        json_spec(%{
+        schema(%{
           optional(:name) => String.t(),
           optional(:email) => String.t()
         })
@@ -155,7 +155,7 @@ defmodule JSONSpecTest do
 
     test "object with explicit required() and optional()" do
       result =
-        json_spec(%{
+        schema(%{
           required(:name) => String.t(),
           optional(:email) => String.t()
         })
@@ -172,13 +172,13 @@ defmodule JSONSpecTest do
     end
 
     test "keyword-style fields are required by default" do
-      result = json_spec(%{name: String.t(), age: integer()})
+      result = schema(%{name: String.t(), age: integer()})
 
       assert result["required"] == ["name", "age"]
     end
 
     test "nullable field is treated as optional" do
-      result = json_spec(%{name: String.t(), age: integer() | nil})
+      result = schema(%{name: String.t(), age: integer() | nil})
 
       assert result == %{
                "type" => "object",
@@ -193,7 +193,7 @@ defmodule JSONSpecTest do
 
     test "nested objects" do
       result =
-        json_spec(%{
+        schema(%{
           user: %{
             name: String.t(),
             address: %{
@@ -231,7 +231,7 @@ defmodule JSONSpecTest do
 
     test "object with enum field" do
       result =
-        json_spec(%{
+        schema(%{
           color: :red | :green | :blue
         })
 
@@ -246,7 +246,7 @@ defmodule JSONSpecTest do
     end
 
     test "object with list field" do
-      result = json_spec(%{tags: [String.t()], scores: [integer()]})
+      result = schema(%{tags: [String.t()], scores: [integer()]})
 
       assert result == %{
                "type" => "object",
@@ -263,7 +263,7 @@ defmodule JSONSpecTest do
   describe "mixed keyword and arrow syntax" do
     test "keyword-style required + arrow-style optional" do
       result =
-        json_spec(%{
+        schema(%{
           required(:name) => String.t(),
           optional(:email) => String.t(),
           optional(:age) => integer()
@@ -277,7 +277,7 @@ defmodule JSONSpecTest do
   describe "descriptions via :doc option" do
     test "adds descriptions to fields" do
       result =
-        json_spec(
+        schema(
           %{
             required(:location) => String.t(),
             optional(:units) => String.t()
@@ -298,7 +298,7 @@ defmodule JSONSpecTest do
 
     test "partial descriptions — only described fields get description" do
       result =
-        json_spec(
+        schema(
           %{name: String.t(), age: integer()},
           doc: [name: "Full name"]
         )
@@ -309,7 +309,7 @@ defmodule JSONSpecTest do
 
     test "descriptions on enum fields" do
       result =
-        json_spec(
+        schema(
           %{status: :active | :inactive},
           doc: [status: "Account status"]
         )
@@ -325,7 +325,7 @@ defmodule JSONSpecTest do
   describe "complex schemas" do
     test "LLM tool-like schema" do
       result =
-        json_spec(
+        schema(
           %{
             required(:location) => String.t(),
             optional(:units) => :celsius | :fahrenheit,
@@ -363,7 +363,7 @@ defmodule JSONSpecTest do
 
     test "deeply nested with arrays of objects" do
       result =
-        json_spec(%{
+        schema(%{
           company: %{
             name: String.t(),
             employees: [
@@ -392,7 +392,7 @@ defmodule JSONSpecTest do
     end
 
     test "nullable enum is optional but still enum" do
-      result = json_spec(%{status: :active | :inactive | nil})
+      result = schema(%{status: :active | :inactive | nil})
 
       assert result["properties"]["status"] == %{
                "type" => "string",
