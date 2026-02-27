@@ -3,51 +3,9 @@ defmodule JSONSpec do
   Elixir typespec syntax → JSON Schema, at compile time.
 
   Write familiar Elixir types and get a JSON Schema map with zero runtime cost.
+  See the [overview](readme.html) for a full guide with examples.
 
-  ## Usage
-
-      import JSONSpec
-
-      my_schema = schema(%{
-        name: String.t(),
-        age: integer(),
-        optional(:email) => String.t()
-      })
-
-      # Produces at compile time:
-      # %{
-      #   "type" => "object",
-      #   "properties" => %{
-      #     "name" => %{"type" => "string"},
-      #     "age" => %{"type" => "integer"},
-      #     "email" => %{"type" => "string"}
-      #   },
-      #   "required" => ["name", "age"],
-      #   "additionalProperties" => false
-      # }
-
-  ## Descriptions
-
-  Pass a `doc` option with a keyword list to add descriptions to properties:
-
-      schema(
-        %{location: String.t(), optional(:units) => :celsius | :fahrenheit},
-        doc: [location: "City name", units: "Temperature units"]
-      )
-
-  ## Atomizing
-
-  JSON data uses string keys. `atomize/2` converts them back to atoms
-  using the schema as the source of truth:
-
-      my_schema = schema(%{required(:name) => String.t(), required(:status) => :active | :inactive})
-      JSONSpec.atomize(my_schema, %{"name" => "Alice", "status" => "active"})
-      #=> %{name: "Alice", status: :active}
-
-  Enum string values are converted to atoms. Nested objects and arrays of
-  objects are atomized recursively. Unknown keys are left as strings.
-
-  ## Supported types
+  ## Type mapping
 
   | Elixir type | JSON Schema |
   |---|---|
@@ -79,11 +37,31 @@ defmodule JSONSpec do
 
   ## Examples
 
-      import JSONSpec
+      iex> import JSONSpec
+      iex> my_schema = schema(%{required(:name) => String.t(), optional(:age) => integer()})
+      iex> JSONSpec.atomize(my_schema, %{"name" => "Alice", "age" => 30})
+      %{name: "Alice", age: 30}
 
-      my_schema = schema(%{required(:name) => String.t(), optional(:age) => integer()})
-      JSONSpec.atomize(my_schema, %{"name" => "Alice", "age" => 30})
-      #=> %{name: "Alice", age: 30}
+  Enum string values become atoms:
+
+      iex> import JSONSpec
+      iex> my_schema = schema(%{status: :active | :inactive})
+      iex> JSONSpec.atomize(my_schema, %{"status" => "active"})
+      %{status: :active}
+
+  Nested objects are atomized recursively:
+
+      iex> import JSONSpec
+      iex> my_schema = schema(%{user: %{name: String.t(), role: :admin | :member}})
+      iex> JSONSpec.atomize(my_schema, %{"user" => %{"name" => "Alice", "role" => "admin"}})
+      %{user: %{name: "Alice", role: :admin}}
+
+  Arrays of objects too:
+
+      iex> import JSONSpec
+      iex> my_schema = schema(%{items: [%{id: integer(), status: :on | :off}]})
+      iex> JSONSpec.atomize(my_schema, %{"items" => [%{"id" => 1, "status" => "on"}]})
+      %{items: [%{id: 1, status: :on}]}
   """
   @spec atomize(map(), map()) :: map()
   def atomize(%{"properties" => properties}, data) when is_map(data) do
@@ -127,18 +105,42 @@ defmodule JSONSpec do
 
   ## Examples
 
-      import JSONSpec
+      iex> import JSONSpec
+      iex> schema(%{name: String.t(), age: integer()})
+      %{
+        "type" => "object",
+        "properties" => %{
+          "name" => %{"type" => "string"},
+          "age" => %{"type" => "integer"}
+        },
+        "required" => ["name", "age"],
+        "additionalProperties" => false
+      }
 
-      schema(%{name: String.t(), age: integer()})
+      iex> import JSONSpec
+      iex> schema([String.t()])
+      %{"type" => "array", "items" => %{"type" => "string"}}
 
-      schema(
-        %{name: String.t(), optional(:age) => integer()},
-        doc: [name: "Full name", age: "Age in years"]
-      )
+      iex> import JSONSpec
+      iex> schema(:active | :inactive | :pending)
+      %{"type" => "string", "enum" => ["active", "inactive", "pending"]}
 
-      schema([String.t()])
+  With descriptions:
 
-      schema(:active | :inactive | :pending)
+      iex> import JSONSpec
+      iex> schema(
+      ...>   %{required(:name) => String.t(), optional(:age) => integer()},
+      ...>   doc: [name: "Full name", age: "Age in years"]
+      ...> )
+      %{
+        "type" => "object",
+        "properties" => %{
+          "name" => %{"type" => "string", "description" => "Full name"},
+          "age" => %{"type" => "integer", "description" => "Age in years"}
+        },
+        "required" => ["name"],
+        "additionalProperties" => false
+      }
   """
   defmacro schema(type_ast, opts \\ []) do
     docs = extract_docs(opts)

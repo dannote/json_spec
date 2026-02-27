@@ -140,6 +140,70 @@ objects are atomized recursively.
 | `%{k: type}` | nested object |
 | `type \| nil` | optional (not in `required`) |
 
+## Validate with JSV
+
+Pair with [JSV](https://hexdocs.pm/jsv) to validate incoming data against
+your schemas at runtime:
+
+```elixir
+import JSONSpec
+
+@user_schema schema(%{
+  required(:name) => String.t(),
+  required(:email) => String.t(),
+  optional(:role) => :admin | :editor | :viewer
+})
+
+root = JSV.build!(@user_schema)
+
+case JSV.validate(params, root) do
+  {:ok, data} -> create_user(data)
+  {:error, error} -> {:error, JSV.normalize_error(error)}
+end
+```
+
+### API contract testing
+
+Use schemas in ExUnit tests to verify your API responses match the contract:
+
+```elixir
+@user_response schema(%{
+  required(:id) => integer(),
+  required(:name) => String.t(),
+  required(:email) => String.t(),
+  optional(:avatar_url) => String.t()
+})
+
+test "GET /api/users/:id returns a valid user" do
+  root = JSV.build!(@user_response)
+  conn = get(conn, ~p"/api/users/1")
+  assert {:ok, _} = JSV.validate(json_response(conn, 200), root)
+end
+```
+
+### Webhook payload validation
+
+Document and validate outgoing webhook payloads:
+
+```elixir
+@webhook_schema schema(%{
+  required(:event) => :order_created | :order_updated | :order_cancelled,
+  required(:timestamp) => String.t(),
+  required(:data) => %{
+    required(:order_id) => integer(),
+    required(:total) => number(),
+    optional(:items) => [%{name: String.t(), quantity: pos_integer()}]
+  }
+})
+
+root = JSV.build!(@webhook_schema)
+
+def deliver_webhook(payload) do
+  {:ok, _} = JSV.validate(payload, root)
+  WebhookClient.post(payload)
+end
+```
+
 ## Use with ReqLLM
 
 JSONSpec works with [ReqLLM](https://hexdocs.pm/req_llm) tool calling.

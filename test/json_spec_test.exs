@@ -1,6 +1,8 @@
 defmodule JSONSpecTest do
   use ExUnit.Case, async: true
 
+  doctest JSONSpec
+
   import JSONSpec
 
   describe "primitive types" do

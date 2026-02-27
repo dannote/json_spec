@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.1 (2026-02-27)
+
+### Improved
+
+- Added JSV validation examples to README (runtime validation, API contract testing, webhook payloads)
+- Trimmed `@moduledoc` to avoid duplication with README
+- Enriched `atomize/2` docs with enum, nested object, and array examples
+- Added output examples to `schema/2` docs
+- Enabled doctests
+
 ## v1.1.0 (2025-02-25)
 
 ### Added
