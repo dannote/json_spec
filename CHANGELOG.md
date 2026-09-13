@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+## 1.2.0 - 2026-09-13
+
+### Added
+
+- `JSONSpec.from_type/2` for generating JSON Schema from normalized type and field metadata, with explicit field names and requiredness.
+- Resolver callbacks and recursive `$ref` support for named types, including nested objects, arrays, and string-keyed maps.
+- Standard nullable unions and an opt-in legacy `"nullable": true` mode.
+
 ## v1.1.1 (2026-02-27)
 
 ### Improved
