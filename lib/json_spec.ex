@@ -148,6 +148,56 @@ defmodule JSONSpec do
     Macro.escape(schema)
   end
 
+  @typedoc "A normalized type description for schema generation."
+  @type schema_type ::
+          atom()
+          | {:literal, term()}
+          | {:enum, [atom()]}
+          | {:nullable, schema_type()}
+          | {:one_of, [schema_type()]}
+          | {:list, schema_type()}
+          | {:map, :string, schema_type()}
+          | {:object, [schema_field()]}
+          | {:ref, term()}
+          | {:schema, map() | boolean()}
+
+  @type schema_field :: %{
+          required(:name) => String.t(),
+          required(:type) => schema_type(),
+          optional(:required) => boolean()
+        }
+
+  @doc """
+  Generates JSON Schema from normalized field/type metadata.
+
+  Unlike `schema/2`, this function accepts data rather than quoted Elixir syntax.
+  Fields use their JSON names and explicit requiredness; omitted `:required`
+  means optional. This lets codec libraries apply aliases and defaults without
+  duplicating JSON Schema generation.
+
+      JSONSpec.from_type({:object, [
+        %{name: "name", type: :string, required: true},
+        %{name: "age", type: {:nullable, :non_neg_integer}}
+      ]})
+
+  `:resolve` accepts a unary function returning a type description for a
+  `{:ref, id}`. Unrecognized atom types also resolve through this callback,
+  allowing consumers to resolve remote modules without JSONSpec depending on
+  those modules. Cycles become local `$ref` pointers; acyclic objects stay inline.
+
+  `{:one_of, types}` describes an Elixir union and emits `anyOf`, since its
+  alternatives may overlap. Nullable values use `anyOf` with a null branch by
+  default. Field optionality
+  is independent of nullability. `nullable: :legacy` emits the nonstandard
+  `"nullable": true` form for adapters that must preserve an existing contract.
+  The `schema/2` macro's existing optional-field semantics are unchanged.
+
+  `{:schema, value}` passes through an already-built object or boolean schema
+  without rebasing its references. No cache is retained between calls.
+  """
+  @spec from_type(schema_type(), keyword()) :: map() | boolean()
+  def from_type(type, options \\ []), do: JSONSpec.Generator.generate(type, options)
+
   @spec extract_docs(keyword()) :: %{String.t() => String.t()}
   defp extract_docs(opts) do
     case Keyword.get(opts, :doc) do
@@ -213,22 +263,22 @@ defmodule JSONSpec do
 
   # String.t()
   def convert({{:., _, [{:__aliases__, _, [:String]}, :t]}, _, []}, _docs) do
-    %{"type" => "string"}
+    from_type(:string)
   end
 
-  # Built-in types
-  def convert({:binary, _, []}, _docs), do: %{"type" => "string"}
-  def convert({:integer, _, []}, _docs), do: %{"type" => "integer"}
-  def convert({:pos_integer, _, []}, _docs), do: %{"type" => "integer", "minimum" => 1}
-  def convert({:non_neg_integer, _, []}, _docs), do: %{"type" => "integer", "minimum" => 0}
-  def convert({:neg_integer, _, []}, _docs), do: %{"type" => "integer", "maximum" => -1}
-  def convert({:float, _, []}, _docs), do: %{"type" => "number"}
-  def convert({:number, _, []}, _docs), do: %{"type" => "number"}
-  def convert({:boolean, _, []}, _docs), do: %{"type" => "boolean"}
-  def convert({:map, _, []}, _docs), do: %{"type" => "object"}
-  def convert({:atom, _, []}, _docs), do: %{"type" => "string"}
-  def convert({:any, _, []}, _docs), do: %{}
-  def convert({:term, _, []}, _docs), do: %{}
+  # Built-in types share the normalized generator's mappings.
+  def convert({:binary, _, []}, _docs), do: from_type(:string)
+  def convert({:integer, _, []}, _docs), do: from_type(:integer)
+  def convert({:pos_integer, _, []}, _docs), do: from_type(:pos_integer)
+  def convert({:non_neg_integer, _, []}, _docs), do: from_type(:non_neg_integer)
+  def convert({:neg_integer, _, []}, _docs), do: from_type(:neg_integer)
+  def convert({:float, _, []}, _docs), do: from_type(:float)
+  def convert({:number, _, []}, _docs), do: from_type(:number)
+  def convert({:boolean, _, []}, _docs), do: from_type(:boolean)
+  def convert({:map, _, []}, _docs), do: from_type(:map)
+  def convert({:atom, _, []}, _docs), do: from_type(:atom)
+  def convert({:any, _, []}, _docs), do: from_type(:any)
+  def convert({:term, _, []}, _docs), do: from_type(:term)
 
   def convert(other, _docs) do
     raise ArgumentError,
